@@ -1,11 +1,12 @@
 import React from 'react';
-import { Editor as MonacoEditor, OnChange } from '@monaco-editor/react';
+import { Editor as MonacoEditor, OnChange, OnMount } from '@monaco-editor/react';
 
 interface EditorProps {
     language?: string;
     theme?: string;
     value?: string;
     onChange: (value: string | undefined) => void;
+    onPositionChange?: (line: number, column: number) => void;
 }
 
 /**
@@ -15,11 +16,27 @@ const Editor: React.FC<EditorProps> = ({
     language = 'javascript',
     theme = 'vs-dark',
     value,
-    onChange
+    onChange,
+    onPositionChange
 }) => {
     // 处理编辑器内容变化，调用父组件传递的 onChange
     const handleEditorChange: OnChange = (value) => {
         onChange(value);
+    };
+
+    // 处理编辑器挂载，设置光标位置监听器
+    const handleEditorMount: OnMount = (editor) => {
+        if (onPositionChange) {
+            editor.onDidChangeCursorPosition((e) => {
+                onPositionChange(e.position.lineNumber, e.position.column);
+            });
+
+            // 初始化位置
+            const position = editor.getPosition();
+            if (position) {
+                onPositionChange(position.lineNumber, position.column);
+            }
+        }
     };
 
     return (
@@ -30,6 +47,7 @@ const Editor: React.FC<EditorProps> = ({
                 theme={theme}
                 value={value}
                 onChange={handleEditorChange}
+                onMount={handleEditorMount}
                 // Monaco 编辑器的高级配置选项
                 options={{
                     fontSize: 14, // 字体大小
