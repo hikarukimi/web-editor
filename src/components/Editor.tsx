@@ -1,11 +1,10 @@
 import React from 'react';
 import { Editor as MonacoEditor, OnChange, OnMount } from '@monaco-editor/react';
+import { useFileStore } from '../store/fileStore';
 
 interface EditorProps {
     language?: string;
     theme?: string;
-    value?: string;
-    onChange: (value: string | undefined) => void;
     onPositionChange?: (line: number, column: number) => void;
 }
 
@@ -15,13 +14,16 @@ interface EditorProps {
 const Editor: React.FC<EditorProps> = ({
     language = 'javascript',
     theme = 'vs-dark',
-    value,
-    onChange,
     onPositionChange
 }) => {
-    // 处理编辑器内容变化，调用父组件传递的 onChange
-    const handleEditorChange: OnChange = (value) => {
-        onChange(value);
+    const { files, activeFileId, updateFileContent } = useFileStore();
+    const activeFile = files.find((f) => f.id === activeFileId);
+    const value = activeFile?.content || '';
+
+    // 处理编辑器内容变化
+    const handleEditorChange: OnChange = (newValue) => {
+        const contentToSave = newValue || '';
+        updateFileContent(contentToSave);
     };
 
     // 处理编辑器挂载，设置光标位置监听器

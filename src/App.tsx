@@ -6,30 +6,16 @@ import Editor from './components/Editor';
 function App() {
     const [language, setLanguage] = useState<string>('javascript');
     const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-    const [code, setCode] = useState<string>(`// talk is cheap show me the code
-
-function greet(name) {
-    console.log("Hello, " + name + "!");
-}
-
-greet("Developer");
-`);
-
-    const handleRun = () => {
-        alert(`Running ${language} code:\n\n${code}`);
-    };
 
     return (
         <div className="flex h-screen w-screen bg-[#09090b] text-white overflow-hidden font-sans">
-            <Sidebar />
+            <Sidebar language={language} />
             <div className="flex-1 flex flex-col h-full bg-[#1e1e1e]">
-                <Toolbar language={language} setLanguage={setLanguage} onRun={handleRun} />
+                <Toolbar language={language} setLanguage={setLanguage} />
                 <div className="flex-1 relative">
                     <Editor
                         language={language}
                         theme="vs-dark"
-                        value={code}
-                        onChange={(val: string | undefined) => setCode(val || '')}
                         onPositionChange={(line, col) => setCursorPos({ line, col })}
                     />
                 </div>

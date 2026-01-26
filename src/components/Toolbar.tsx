@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Settings, Share2 } from 'lucide-react';
+import { useFileStore } from '../store/fileStore';
 
 /**
  * 编辑器支持的编程语言列表。
@@ -14,14 +15,23 @@ const languages: string[] = [
 interface ToolbarProps {
     language: string;
     setLanguage: (language: string) => void;
-    onRun: () => void;
 }
 
 /**
  * 代码编辑器的工具栏组件。
  * 提供语言选择、代码运行及其他操作的控制功能。
  */
-const Toolbar: React.FC<ToolbarProps> = ({ language, setLanguage, onRun }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ language, setLanguage }) => {
+    const { files, activeFileId } = useFileStore();
+    const activeFile = files.find((f) => f.id === activeFileId);
+
+    const handleRun = () => {
+        const code = activeFile?.content || '';
+        alert(`Running ${language} code:\n\n${code}`);
+    };
+
+
+
     return (
         <div className="h-14 bg-[#18181b] border-b border-gray-800 flex items-center justify-between px-4">
             <div className="flex items-center gap-4">
@@ -47,7 +57,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ language, setLanguage, onRun }) => {
             <div className="flex items-center gap-3">
                 {/* 运行按钮：执行当前代码 */}
                 <button
-                    onClick={onRun}
+                    onClick={handleRun}
                     className="flex items-center gap-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors"
                 >
                     <Play className="h-4 w-4" />
