@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Folder, FileCode, FileJson, FileType, ChevronRight, ChevronDown, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FileItem } from '../lib/types';
@@ -63,30 +63,79 @@ const FileTreeItem: React.FC<{ item: FileItem; depth?: number }> = ({ item, dept
 /**
  * 侧边栏组件 - 显示文件资源管理器
  */
-const Sidebar: React.FC<SidebarProps> = ({ language = 'javascript' }) => {
+const Sidebar: React.FC<SidebarProps> = () => {
     const { files, activeFileId, addFile, setActiveFile } = useFileStore();
+    const [showNewFileInput, setShowNewFileInput] = useState(false);
+    const [newFileName, setNewFileName] = useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    // 当输入框显示时自动聚焦
+    useEffect(() => {
+        if (showNewFileInput) {
+            inputRef.current?.focus();
+        }
+    }, [showNewFileInput]);
 
     const handleNewFile = () => {
-        const fileName = prompt('请输入文件名（包含扩展名，如: index.js, config.json）');
-        if (fileName && fileName.trim()) {
-            addFile(fileName.trim());
+        setShowNewFileInput(true);
+        setNewFileName('');
+    };
+
+    const handleCreateFile = () => {
+        if (newFileName.trim()) {
+            addFile(newFileName.trim());
+            setShowNewFileInput(false);
+            setNewFileName('');
         }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleCreateFile();
+        } else if (e.key === 'Escape') {
+            setShowNewFileInput(false);
+            setNewFileName('');
+        }
+    };
+
+    const handleCancel = () => {
+        setShowNewFileInput(false);
+        setNewFileName('');
     };
 
     return (
         <div className="w-64 bg-[#18181b] border-r border-gray-800 h-full flex flex-col">
             {/* 侧边栏标题和操作 */}
-            <div className="p-3 border-b border-gray-800 font-bold text-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="text-blue-500">Hikarukimi</span> Editor
+            <div className="border-b border-gray-800">
+                <div className="p-3 font-bold text-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="text-blue-500">Hikarukimi</span> Editor
+                    </div>
+                    {!showNewFileInput && (
+                        <button
+                            onClick={handleNewFile}
+                            className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
+                            title="新增文件"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
-                <button
-                    onClick={handleNewFile}
-                    className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
-                    title="新增文件"
-                >
-                    <Plus className="h-4 w-4" />
-                </button>
+                {/* 新增文件输入框 */}
+                {showNewFileInput && (
+                    <div className="px-3 pb-3">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={newFileName}
+                            onChange={(e) => setNewFileName(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleCancel}
+                            placeholder="输入文件名（如: index.js）"
+                            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                        />
+                    </div>
+                )}
             </div>
             {/* 文件列表区域 */}
             <div className="flex-1 overflow-y-auto py-2">
