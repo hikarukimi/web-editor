@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileCode, FileJson, FileType, ChevronRight, ChevronDown, Plus } from 'lucide-react';
+import { Folder, FileCode, FileJson, FileType, ChevronRight, ChevronDown, Plus, FolderPlus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FileItem } from '../lib/types';
 import { useFileStore } from '../store/fileStore';
@@ -22,19 +22,35 @@ const FileIcon: React.FC<{ name: string }> = ({ name }) => {
  * 递归渲染文件树项
  */
 const FileTreeItem: React.FC<{ item: FileItem; depth?: number }> = ({ item, depth = 0 }) => {
+    const { activeFileId, selectedFolderId, setActiveFile, setSelectedFolder } = useFileStore();
     const [isOpen, setIsOpen] = useState(item.isOpen || false);
+
+    const handleClick = () => {
+        if (item.type === 'folder') {
+            setIsOpen(!isOpen);
+            setSelectedFolder(item.id);
+        } else {
+            setActiveFile(item.id);
+        }
+    };
+
+    const isSelected = selectedFolderId === item.id;
 
     return (
         <div>
             <div
                 className={cn(
-                    "flex items-center gap-1 py-1 px-2 cursor-pointer hover:bg-gray-800 text-sm text-gray-300 select-none",
-                    depth > 0 && "pl-4"
+                    "flex items-center gap-1 py-1 px-2 cursor-pointer text-sm select-none transition-colors",
+                    item.type === 'file' && activeFileId === item.id
+                        ? "bg-blue-600 text-white"
+                        : item.type === 'folder' && isSelected
+                        ? "bg-gray-700 text-white"
+                        : "text-gray-300 hover:bg-gray-800"
                 )}
                 // 根据深度动态计算左内边距
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
-                // 点击文件夹时切换展开状态
-                onClick={() => item.type === 'folder' && setIsOpen(!isOpen)}
+                // 点击文件夹切换展开状态，点击文件激活文件
+                onClick={handleClick}
             >
                 {/* 渲染文件夹图标（根据展开状态显示不同箭头） */}
                 {item.type === 'folder' && (
@@ -64,8 +80,9 @@ const FileTreeItem: React.FC<{ item: FileItem; depth?: number }> = ({ item, dept
  * 侧边栏组件 - 显示文件资源管理器
  */
 const Sidebar: React.FC<SidebarProps> = () => {
-    const { files, activeFileId, addFile, setActiveFile } = useFileStore();
+    const { files, activeFileId, selectedFolderId, addFile, addFolder, setActiveFile } = useFileStore();
     const [showNewFileInput, setShowNewFileInput] = useState(false);
+    const [inputType, setInputType] = useState<'file' | 'folder'>('file');
     const [newFileName, setNewFileName] = useState('');
     const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -77,13 +94,24 @@ const Sidebar: React.FC<SidebarProps> = () => {
     }, [showNewFileInput]);
 
     const handleNewFile = () => {
+        setInputType('file');
         setShowNewFileInput(true);
         setNewFileName('');
     };
 
-    const handleCreateFile = () => {
+    const handleNewFolder = () => {
+        setInputType('folder');
+        setShowNewFileInput(true);
+        setNewFileName('');
+    };
+
+    const handleCreate = () => {
         if (newFileName.trim()) {
-            addFile(newFileName.trim());
+            if (inputType === 'file') {
+                addFile(newFileName.trim(), selectedFolderId || undefined);
+            } else {
+                addFolder(newFileName.trim(), selectedFolderId || undefined);
+            }
             setShowNewFileInput(false);
             setNewFileName('');
         }
@@ -91,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            handleCreateFile();
+            handleCreate();
         } else if (e.key === 'Escape') {
             setShowNewFileInput(false);
             setNewFileName('');
@@ -111,17 +139,29 @@ const Sidebar: React.FC<SidebarProps> = () => {
                     <div className="flex items-center gap-2">
                         <span className="text-blue-500">Hikarukimi</span> Editor
                     </div>
-                    {!showNewFileInput && (
+                </div>
+                {/* 新增文件/文件夹按钮 */}
+                {!showNewFileInput && (
+                    <div className="px-3 pb-3 flex gap-2">
                         <button
                             onClick={handleNewFile}
-                            className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
                             title="新增文件"
                         >
                             <Plus className="h-4 w-4" />
+                            <span>新增文件</span>
                         </button>
-                    )}
-                </div>
-                {/* 新增文件输入框 */}
+                        <button
+                            onClick={handleNewFolder}
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+                            title="新增文件夹"
+                        >
+                            <FolderPlus className="h-4 w-4" />
+                            <span>新增文件夹</span>
+                        </button>
+                    </div>
+                )}
+                {/* 新增文件/文件夹输入框 */}
                 {showNewFileInput && (
                     <div className="px-3 pb-3">
                         <input
@@ -131,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
                             onChange={(e) => setNewFileName(e.target.value)}
                             onKeyDown={handleKeyDown}
                             onBlur={handleCancel}
-                            placeholder="输入文件名（如: index.js）"
+                            placeholder={inputType === 'file' ? '输入文件名（如: index.js）' : '输入文件夹名称'}
                             className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                         />
                     </div>
@@ -140,22 +180,26 @@ const Sidebar: React.FC<SidebarProps> = () => {
             {/* 文件列表区域 */}
             <div className="flex-1 overflow-y-auto py-2">
                 {files.length === 0 ? (
-                    <div className="text-gray-500 text-sm px-4 py-4">暂无文件</div>
+                    <div className="text-gray-500 text-sm px-4 py-4">暂无文件或文件夹</div>
                 ) : (
                     files.map((file: FileItem) => (
-                        <div
-                            key={file.id}
-                            onClick={() => setActiveFile(file.id)}
-                            className={cn(
-                                "flex items-center gap-2 py-1 px-2 mx-2 rounded cursor-pointer text-sm select-none transition-colors",
-                                activeFileId === file.id
-                                    ? "bg-blue-600 text-white"
-                                    : "text-gray-300 hover:bg-gray-800"
-                            )}
-                        >
-                            <FileIcon name={file.name} />
-                            <span className="truncate">{file.name}</span>
-                        </div>
+                        file.type === 'folder' ? (
+                            <FileTreeItem key={file.id} item={file} depth={0} />
+                        ) : (
+                            <div
+                                key={file.id}
+                                onClick={() => setActiveFile(file.id)}
+                                className={cn(
+                                    "flex items-center gap-2 py-1 px-2 mx-2 rounded cursor-pointer text-sm select-none transition-colors",
+                                    activeFileId === file.id
+                                        ? "bg-blue-600 text-white"
+                                        : "text-gray-300 hover:bg-gray-800"
+                                )}
+                            >
+                                <FileIcon name={file.name} />
+                                <span className="truncate">{file.name}</span>
+                            </div>
+                        )
                     ))
                 )}
             </div>
