@@ -80,7 +80,7 @@ const FileTreeItem: React.FC<{ item: FileItem; depth?: number }> = ({ item, dept
  * 侧边栏组件 - 显示文件资源管理器
  */
 const Sidebar: React.FC<SidebarProps> = () => {
-    const { files, activeFileId, selectedFolderId, addFile, addFolder, setActiveFile } = useFileStore();
+    const { files, activeFileId, selectedFolderId, errorMessage, addFile, addFolder, setActiveFile, clearError } = useFileStore();
     const [showNewFileInput, setShowNewFileInput] = useState(false);
     const [inputType, setInputType] = useState<'file' | 'folder'>('file');
     const [newFileName, setNewFileName] = useState('');
@@ -107,15 +107,22 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
     const handleCreate = () => {
         if (newFileName.trim()) {
+            clearError();
             if (inputType === 'file') {
                 addFile(newFileName.trim(), selectedFolderId || undefined);
             } else {
                 addFolder(newFileName.trim(), selectedFolderId || undefined);
             }
+        }
+    };
+
+    // 当创建成功时（errorMessage 为 null），自动关闭输入框
+    useEffect(() => {
+        if (showNewFileInput && errorMessage === null && newFileName.trim() !== '') {
             setShowNewFileInput(false);
             setNewFileName('');
         }
-    };
+    }, [errorMessage]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -172,8 +179,16 @@ const Sidebar: React.FC<SidebarProps> = () => {
                             onKeyDown={handleKeyDown}
                             onBlur={handleCancel}
                             placeholder={inputType === 'file' ? '输入文件名（如: index.js）' : '输入文件夹名称'}
-                            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                            className={cn(
+                                "w-full px-2 py-1 bg-gray-700 border rounded text-sm text-white placeholder-gray-400 focus:outline-none",
+                                errorMessage ? "border-red-500 focus:border-red-500" : "border-gray-600 focus:border-blue-500"
+                            )}
                         />
+                        {errorMessage && (
+                            <div className="mt-1 px-2 py-1 bg-red-900 border border-red-700 rounded text-xs text-red-200">
+                                {errorMessage}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
