@@ -1,11 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import Editor from './components/Editor';
+import { useFileStore } from './store/fileStore';
+import { getLanguageFromFileName } from './lib/utils';
 
 function App() {
     const [language, setLanguage] = useState<string>('javascript');
     const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+    const { files, activeFileId } = useFileStore();
+
+    // 当活跃文件改变时，自动更新编辑器语言
+    useEffect(() => {
+        const activeFile = files.find((f) => f.id === activeFileId);
+        if (activeFile && activeFile.type === 'file') {
+            const detectedLanguage = getLanguageFromFileName(activeFile.name);
+            setLanguage(detectedLanguage);
+        }
+    }, [activeFileId, files]);
 
     return (
         <div className="flex h-screen w-screen bg-[#09090b] text-white overflow-hidden font-sans">
