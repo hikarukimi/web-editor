@@ -30,7 +30,7 @@ function isNameDuplicate(files: FileItem[], parentId: string | undefined, name: 
         // 在根目录检查
         return files.some((file: FileItem) => file.name === name);
     }
-    
+
     // 在指定文件夹中递归检查
     for (const file of files) {
         if (file.id === parentId && file.type === 'folder') {
@@ -149,13 +149,20 @@ greet("Developer");
     },
 
     updateFileContent: (content: string) => {
-        set((state: FileState) => ({
-            files: state.files.map((f: FileItem) =>
-                f.id === state.activeFileId && f.type !== 'folder'
-                    ? { ...f, content }
-                    : f
-            )
-        }));
+        set((state: FileState) => {
+            const updateRecursive = (files: FileItem[]): FileItem[] => {
+                return files.map((f) => {
+                    if (f.id === state.activeFileId && f.type === 'file') {
+                        return { ...f, content };
+                    }
+                    if (f.type === 'folder' && f.children) {
+                        return { ...f, children: updateRecursive(f.children) };
+                    }
+                    return f;
+                });
+            };
+            return { files: updateRecursive(state.files) };
+        });
     },
 
     setActiveFile: (fileId: string) => {
